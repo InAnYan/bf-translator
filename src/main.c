@@ -67,7 +67,7 @@ void push(size_t count);
 size_t pop();
 
 int main(int argc, char* argv[]) {
-	printf("bf1-inanyan v0.1 - Brainfuck interpreter and assembler\n");
+	printf("bf-translator - Brainfuck language interpreter and translator to DOS MASM assembler.\n");
 	printf("Copyright (C) 2022 Ruslan Popov <ruslanpopov1512@gmail.com>\n\n");
 
 	if (argc < 2)
@@ -187,7 +187,6 @@ int generateASM(const char* fileContent, const size_t fileSize, const char* file
 
 		if (c == '>')
 		{
-			fprintf(work, "mov ds:[bx], dl\n\t\t");
 			int toAdd = 1;
 			if (fileContent[filePos + 1] == '>')
 			{
@@ -200,11 +199,9 @@ int generateASM(const char* fileContent, const size_t fileSize, const char* file
 				filePos--;
 			}
 			fprintf(work, "add bx, %d\n\t\t", toAdd);
-			fprintf(work, "mov dl, ds:[bx]");
 		}
 		else if (c == '<')
 		{
-			fprintf(work, "mov ds:[bx], dl\n\t\t");
 			int toDec = 1;
 			if (fileContent[filePos + 1] == '<')
 			{
@@ -216,8 +213,7 @@ int generateASM(const char* fileContent, const size_t fileSize, const char* file
 				}
 				filePos--;
 			}
-			fprintf(work, "sub bx, %d\n\t\t", toDec);
-			fprintf(work, "mov dl, ds:[bx]");
+ 			fprintf(work, "sub bx, %d\n\t\t", toDec);
 		}
 		else if (c == '+')
 		{
@@ -232,7 +228,7 @@ int generateASM(const char* fileContent, const size_t fileSize, const char* file
 				}
 				filePos--;
 			}
-			fprintf(work, "add dl, %d", toAdd);
+			fprintf(work, "add byte ptr ds:[bx], %d", toAdd);
 		}
 		else if (c == '-')
 		{
@@ -247,15 +243,15 @@ int generateASM(const char* fileContent, const size_t fileSize, const char* file
 				}
 				filePos--;
 			}
-			fprintf(work, "sub dl, %d", toDec);
+			fprintf(work, "sub byte ptr ds:[bx], %d", toDec);
 		}
 		else if (c == '.')
 		{
-			fprintf(work, "mov ah, 02h\n\t\tint 21h");
+			fprintf(work, "mov ah, 02h\n\t\tmov dl, byte ptr ds:[bx]\n\t\tint 21h");
 		}
 		else if (c == ',')
 		{
-			fprintf(work, "mov ah, 01h\n\t\tint 21h\n\t\tmov dl, al");
+			fprintf(work, "mov ah, 01h\n\t\tint 21h\n\t\tmov byte ptr ds:[bx], al");
 		}
 		else if (c == '[')
 		{
@@ -267,7 +263,7 @@ int generateASM(const char* fileContent, const size_t fileSize, const char* file
 				return 7;
 			}
 			push(loopsCount);
-			fprintf(work, "\ncmp dl, 0\njz mark_%zu_1\nmark_%zu_0: ", loopsCount, loopsCount);
+			fprintf(work, "\ncmp byte ptr ds:[bx], 0\njz mark_%zu_1\nmark_%zu_0: ", loopsCount, loopsCount);
 		}
 		else if (c == ']')
 		{
@@ -278,7 +274,7 @@ int generateASM(const char* fileContent, const size_t fileSize, const char* file
 				return 8;
 			}
 			size_t count = pop();
-			fprintf(work, "\ncmp dl, 0\njnz mark_%zu_0\nmark_%zu_1: ", count, count);
+			fprintf(work, "\ncmp byte ptr ds:[bx], 0\njnz mark_%zu_0\nmark_%zu_1: ", count, count);
 		}
 
 		fputc('\n', work);
